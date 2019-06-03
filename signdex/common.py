@@ -23,3 +23,7 @@ class Camera:
 
 class Path:
     DATASETS = os.path.join(os.getcwd(), 'datasets')
+
+    @staticmethod
+    def list_subdirectories(dirpath):
+        return [d for d in os.listdir(dirpath) if os.path.isdir(os.path.join(dirpath,d))]
