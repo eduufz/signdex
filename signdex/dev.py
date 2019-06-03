@@ -40,7 +40,6 @@ class Window():
     @staticmethod
     def show(title, image):
         cv2.imshow(title, image)
-        cv2.waitKey(1)
 
     @staticmethod
     def clean():
