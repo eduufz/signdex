@@ -44,7 +44,7 @@ class Dataset:
         for tag in tags:
             tag = tag.strip()
             tag_count = 0
-            started = False
+            recording = False
 
             # Create directory
             tagpath = os.path.join(self.path, tag)
@@ -52,27 +52,27 @@ class Dataset:
 
             # Wait for user to start recording
             while True:
-                Window.show_tag_panel(tag, (0, n), started)
+                Window.show_tag_panel(tag, (0, n), recording)
                 
                 frame = self.camera.read()
                 cv2.imshow('video', frame)
                 if cv2.waitKey(1) & 0xFF == ord('c'): break
-            started = True
+            recording = True
 
             # Start recording
             while True:
-                Window.show_tag_panel(tag, (tag_count+1, n), started)
-
                 frame = self.camera.read()
                 cv2.imshow('video', frame)
+                Window.show_tag_panel(tag, (tag_count, n), recording)
 
-                # Save images
-                savepath = os.path.join(tagpath, '{}{}.jpg'.format(tag,tag_count+1))
-                cv2.imwrite(savepath, frame)
+                # Save images until specified
+                if tag_count < n:
+                    tagname = '{}{}.jpg'.format(tag,('0000'+str(tag_count+1))[-4:])
+                    savepath = os.path.join(tagpath,tagname)
+                    cv2.imwrite(savepath, frame)
+                    if tag_count != n: tag_count += 1
 
                 if cv2.waitKey(1) != -1: break
-
-                if tag_count < n-1: tag_count += 1
 
     def load(self):
         pass
