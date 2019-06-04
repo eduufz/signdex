@@ -15,7 +15,7 @@ class Camera:
     def read(self):
         _, frame = self.source.read()
         
-        return frame
+        return cv2.flip(frame,1)
     
     def close(self):
         self.source.release()
