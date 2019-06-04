@@ -1,6 +1,9 @@
+# Python
 import os
-
+# Downloaded
 import cv2
+# SignDex
+
 
 class Camera:
     def __init__(self):

@@ -1,5 +1,8 @@
+# Python
+# Downloaded
 import numpy as np
 import cv2
+# SignDex
 
 
 class Window():
