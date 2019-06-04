@@ -25,5 +25,27 @@ class Path:
     DATASETS = os.path.join(os.getcwd(), 'datasets')
 
     @staticmethod
-    def list_subdirectories(dirpath):
-        return [d for d in os.listdir(dirpath) if os.path.isdir(os.path.join(dirpath,d))]
+    def list_subdirectories(dirpath, return_fullpath=False):
+        dirlist = []
+        for file_ in os.listdir(dirpath):
+            filepath = os.path.join(dirpath,file_)
+            if os.path.isdir(filepath):
+                if return_fullpath:
+                    dirlist.append(filepath)
+                else:
+                    dirlist.append(file_)
+        
+        return dirlist
+
+    @staticmethod
+    def list_files(dirpath, return_fullpath=False):
+        filelist = []
+        for file_ in os.listdir(dirpath):
+            filepath = os.path.join(dirpath,file_)
+            if os.path.isfile(filepath):
+                if return_fullpath:
+                    filelist.append(filepath)
+                else:
+                    filelist.append(file_)
+        
+        return filelist
