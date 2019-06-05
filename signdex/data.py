@@ -140,8 +140,8 @@ class Dataset:
         os.makedirs(self.test_path)
 
         for tag in tags:
-            os.mkdir(os.path.join(training_path,tag))
-            os.mkdir(os.path.join(testing_path,tag))
+            os.mkdir(os.path.join(self.train_path, tag))
+            os.mkdir(os.path.join(self.test_path, tag))
 
     def __exists(self):
         dataset_list = Path.list_subdirectories(Path.DATASETS)
