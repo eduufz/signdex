@@ -26,6 +26,7 @@ class Camera:
 
 class Path:
     DATASETS = os.path.join(os.getcwd(), 'datasets')
+    MODELS = os.path.join(os.getcwd(), 'models')
 
     @staticmethod
     def list_subdirectories(dirpath, return_fullpath=False):
