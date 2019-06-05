@@ -152,17 +152,17 @@ class Dataset:
     @property
     def total_images(self):
         total = 0
-        tag_list = Path.list_subdirectories(self.path)
         
-        for tag in tag_list:
-            total += len(Path.list_files(os.path.join(self.path, tag)))
+        for tag in self.tag_list:
+            total += len(Path.list_files(os.path.join(self.train_path, tag)))
+            total += len(Path.list_files(os.path.join(self.test_path, tag)))
         
         return total
 
     @property
     def total_tags(self):
-        return len(Path.list_subdirectories(self.path))
+        return len(Path.list_subdirectories(self.train_path))
     
     @property
     def tag_list(self):
-        return Path.list_subdirectories(self.path)
+        return Path.list_subdirectories(self.train_path)
