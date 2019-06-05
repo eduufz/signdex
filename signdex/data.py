@@ -13,6 +13,8 @@ class Dataset:
     def __init__(self, name):
         self.name = name
         self.path = os.path.join(Path.DATASETS, self.name)
+        self.train_path = os.path.join(self.path,'training')
+        self.test_path = os.path.join(self.path,'testing')
         self.camera = Camera()
         self.processor = Processor()
 
@@ -45,7 +47,7 @@ class Dataset:
         total_training_images = int(n*ratio)
 
         # Create train and test directories
-        paths = self.__create_train_test_dirs(tags)
+        self.__create_train_test_dirs(tags)
 
         self.camera.open()
         cv2.namedWindow('video')
@@ -56,8 +58,8 @@ class Dataset:
             recording = False
 
             # Create directory
-            train_tagpath = os.path.join(paths['training'], tag)
-            test_tagpath = os.path.join(paths['testing'], tag)
+            train_tagpath = os.path.join(self.train_path, tag)
+            test_tagpath = os.path.join(self.test_path, tag)
 
             # Wait for user to start recording
             while True:
@@ -87,7 +89,37 @@ class Dataset:
                 if cv2.waitKey(1) != -1: break
 
     def load(self, target_size, binarized=False):
-        pass
+        # Image Data Generator instances
+        training_idg = ImageDataGenerator(
+            rescale=1./255,
+            rotation_range=15,
+            width_shift_range=0.2,
+            height_shift_range=0.2,
+            shear_range=0.2,
+            zoom_range=0.2,
+            horizontal_flip=True,
+            fill_mode='nearest'
+        )
+        testing_idg = ImageDataGenerator(rescale=1.0/255.)
+
+        # Directory flows
+        training_generator = training_idg.flow_from_directory(
+            self.train_path,
+            batch_size=25,
+            class_mode='categorical',
+            target_size=target_size
+        )
+        testing_generator = testing_idg.flow_from_directory(
+            self.test_path,
+            batch_size=25,
+            class_mode='categorical',
+            target_size=target_size
+        )
+
+        return {
+            "training": training_generator,
+            "testing": testing_generator
+        }
 
     def delete(self):
         shutil.rmtree(self.path, ignore_errors=True)
@@ -104,17 +136,12 @@ class Dataset:
         }
 
     def __create_train_test_dirs(self, tags):
-        training_path = os.path.join(self.path,'training')
-        testing_path = os.path.join(self.path,'testing')
-
-        os.makedirs(training_path)
-        os.makedirs(testing_path)
+        os.makedirs(self.train_path)
+        os.makedirs(self.test_path)
 
         for tag in tags:
             os.mkdir(os.path.join(training_path,tag))
             os.mkdir(os.path.join(testing_path,tag))
-
-        return {"training":training_path, "testing":testing_path}
 
     def __exists(self):
         dataset_list = Path.list_subdirectories(Path.DATASETS)
