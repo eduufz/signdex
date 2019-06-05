@@ -40,7 +40,7 @@ class Model:
         model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['acc'])
         model.summary()
 
-        self.__train(model, dataset.generator())
+        self.__train(model, dataset.load())
 
     def create_cnn(self, dataset, target_size=(64,64)):
         model = tf.keras.models.Sequential([
@@ -58,7 +58,7 @@ class Model:
         model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['acc'])
         model.summary()
 
-        self.__train(model, dataset.generator())
+        self.__train(model, dataset.load())
     
     def __train(self, model, generator):
         pass
