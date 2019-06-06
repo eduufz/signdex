@@ -1,7 +1,9 @@
 # Python
+import os
 # Downloaded
 import cv2
 # SignDex
+from signdex.common import Path
 
 
 class Processor:

@@ -12,16 +12,22 @@ from signdex.dev import Window
 class Dataset:
     def __init__(self, name):
         self.name = name
+
         self.path = os.path.join(Path.DATASETS, self.name)
         self.train_path = os.path.join(self.path,'training')
         self.test_path = os.path.join(self.path,'testing')
+
+        self.path_binarized = os.path.join(Path.DATASETS, '{}_binarized'.format(self.name))
+        self.train_path_binarized = os.path.join(self.path_binarized,'training')
+        self.test_path_binarized = os.path.join(self.path_binarized,'testing')
+
         self.camera = Camera()
         self.processor = Processor()
 
     def summary(self):
         print('DATASET:',self.name)
 
-        if self.__exists():
+        if self.exists():
             print('  Location:', self.path)
             print('  Total classes:', self.total_tags)
             print('  Class list:', self.tag_list)
@@ -36,7 +42,7 @@ class Dataset:
             raise ValueError('tag list cannot be empty')
 
         # Check if dataset already exists
-        if self.__exists():
+        if self.exists():
             # If specified, delete dataset if exists
             if replace_if_exists:
                 self.delete()
@@ -66,7 +72,9 @@ class Dataset:
                 Window.show_tag_panel(tag, (0, n), recording)
                 images = self.__get_processed_images(side)
                 cv2.imshow('video', images['display'])
-                if cv2.waitKey(1) & 0xFF == ord('c'): break
+
+                key = cv2.waitKey(1)
+                if key & 0xFF == ord('c'): break
             recording = True
 
             # Start recording
@@ -85,32 +93,77 @@ class Dataset:
                     savepath = os.path.join(test_tagpath,tagname)
                     cv2.imwrite(savepath, images['crop'])
                     if tag_count != n: tag_count += 1
+                
+                key = cv2.waitKey(1)
+                if key != -1: break
 
-                if cv2.waitKey(1) != -1: break
+    def process(self):
+        if not self.exists():
+            raise ValueError('dataset does not exist')
+        
+        self.__create_train_test_dirs(self.tag_list, binarized=True)
+
+        train_tagpaths = Path.list_subdirectories(self.train_path, return_fullpath=True)
+        train_bin_tagpaths = Path.list_subdirectories(self.train_path_binarized, return_fullpath=True)
+        test_tagpaths = Path.list_subdirectories(self.test_path, return_fullpath=True)
+        test_bin_tagpaths = Path.list_subdirectories(self.test_path_binarized, return_fullpath=True)
+
+        print('Processing dataset...')
+
+        for tagpath,bin_tagpath in zip(train_tagpaths,train_bin_tagpaths):
+            file_list = Path.list_files(tagpath, return_fullpath=True)
+            for filepath in file_list:
+                filename = filepath.replace('\\','/').split('/')[-1]
+                image = cv2.imread(filepath)
+                image = self.processor.binarize(image)
+                cv2.imshow('processed',image)
+                cv2.waitKey(1)
+                cv2.imwrite(os.path.join(bin_tagpath,filename), image)
+        
+        for tagpath,bin_tagpath in zip(test_tagpaths,test_bin_tagpaths):
+            file_list = Path.list_files(tagpath, return_fullpath=True)
+            for filepath in file_list:
+                filename = filepath.replace('\\','/').split('/')[-1]
+                image = cv2.imread(filepath)
+                image = self.processor.binarize(image)
+                cv2.imshow('processed',image)
+                cv2.waitKey(1)
+                cv2.imwrite(os.path.join(bin_tagpath,filename), image)
+        cv2.destroyAllWindows()
+
+        print('{} total images processed'.format(self.total_images))
 
     def load(self, target_size, binarized=False):
+        color_mode = ('grayscale' if binarized else 'rgb')
+        train_path = (self.train_path_binarized if binarized else self.train_path)
+        test_path = (self.test_path_binarized if binarized else self.test_path)
+
         # Image Data Generator instances
         training_idg = ImageDataGenerator(
             rescale=1./255,
-            rotation_range=15,
+            rotation_range=10,
             zoom_range=0.2,
-            horizontal_flip=False,
+            width_shift_range=0.2,
+            height_shift_range=0.2,
+            horizontal_flip=True,
             fill_mode='nearest'
         )
         testing_idg = ImageDataGenerator(rescale=1.0/255.)
 
         # Directory flows
         training_generator = training_idg.flow_from_directory(
-            self.train_path,
+            train_path,
             batch_size=32,
             class_mode='categorical',
-            target_size=target_size
+            target_size=target_size,
+            color_mode=color_mode
         )
         testing_generator = testing_idg.flow_from_directory(
-            self.test_path,
+            test_path,
             batch_size=32,
             class_mode='categorical',
-            target_size=target_size
+            target_size=target_size,
+            color_mode=color_mode
         )
 
         return {
@@ -132,15 +185,18 @@ class Dataset:
             "crop":crop
         }
 
-    def __create_train_test_dirs(self, tags):
-        os.makedirs(self.train_path)
-        os.makedirs(self.test_path)
+    def __create_train_test_dirs(self, tags, binarized=False):
+        train_path = (self.train_path_binarized if binarized else self.train_path)
+        test_path = (self.test_path_binarized if binarized else self.test_path)
+
+        os.makedirs(train_path, exist_ok=True)
+        os.makedirs(test_path, exist_ok=True)
 
         for tag in tags:
-            os.mkdir(os.path.join(self.train_path, tag))
-            os.mkdir(os.path.join(self.test_path, tag))
+            os.makedirs(os.path.join(train_path, tag), exist_ok=True)
+            os.makedirs(os.path.join(test_path, tag), exist_ok=True)
 
-    def __exists(self):
+    def exists(self):
         dataset_list = Path.list_subdirectories(Path.DATASETS)
 
         if self.name in dataset_list: return True

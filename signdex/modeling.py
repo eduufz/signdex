@@ -30,7 +30,7 @@ class Model:
         self.load()
 
     def load(self):
-        if self.__exists():
+        if self.exists():
             # Read json model
             json_file = open(self.model_path, 'r')
             json_model = json_file.read()
@@ -43,24 +43,8 @@ class Model:
             ds_name = '_'.join(self.name.split('_')[:-1])
             self.dataset = Dataset(ds_name)
 
-    def create_nn(self, dataset, target_size=(64,64)):
-        input_size = target_size[0]*target_size[1]
-
-        model = tf.keras.models.Sequential([
-            tf.keras.layers.Dense(input_size, activation='relu', input_shape=(input_size,)),
-            tf.keras.layers.Dense(1024, activation='relu'),
-            tf.keras.layers.Dense(256, activation='relu'),
-            tf.keras.layers.Dense(128, activation='relu'),
-            tf.keras.layers.Dense(dataset.total_tags, activation='softmax')
-        ])
-        
-        model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['acc'])
-        model.summary()
-
-        self.__train(model, dataset.load(target_size=target_size, binarized=True))
-
-    def create_cnn(self, dataset, target_size=(64,64)):
-        input_shape = (target_size[0], target_size[1], 3)
+    def create(self, dataset, target_size=(64,64), binarized=False):
+        input_shape = (target_size[0], target_size[1], (1 if binarized else 3))
 
         model = tf.keras.models.Sequential([
             tf.keras.layers.Conv2D(16, (3, 3), activation='relu', input_shape=input_shape),
@@ -77,13 +61,14 @@ class Model:
         model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['acc'])
         model.summary()
 
-        self.__train(model, dataset.load(target_size=target_size, binarized=False))
+        self.__train(model, dataset.load(target_size=target_size, binarized=binarized))
 
     def predict(self, image):
         size = int(self.name.split('_')[-1])
         image = cv2.resize(image, (size,size))
 
-        tag = self.__model.predict_classes([image.reshape(1,size,size,3)])[0]
+        image = [image.reshape(1,size,size,(1 if len(image.shape)==2 else 3))]
+        tag = self.__model.predict_classes(image)[0]
         prediction = self.dataset.tag_list[tag]
 
         return prediction
@@ -91,11 +76,11 @@ class Model:
     def __train(self, model, generators):
         history = model.fit_generator(
             generators['training'],
-            steps_per_epoch=500,
+            steps_per_epoch=2000,
             epochs=50,
             verbose=1,
             validation_data=generators['testing'],
-            validation_steps=200,
+            validation_steps=800,
             callbacks=[AccuracyCallback(0.99)]
         )
 
@@ -103,7 +88,7 @@ class Model:
         self.__graph_results(history)
 
     def __save(self, model):
-        if self.__exists():
+        if self.exists():
             shutil.rmtree(self.path, ignore_errors=True)
         os.makedirs(self.path)
 
@@ -135,7 +120,7 @@ class Model:
         plt.title('Accuracy Curves',fontsize=16)
         plt.show()
     
-    def __exists(self):
+    def exists(self):
         model_list = Path.list_subdirectories(Path.MODELS)
 
         if self.name in model_list: return True
