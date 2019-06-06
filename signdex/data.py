@@ -93,11 +93,8 @@ class Dataset:
         training_idg = ImageDataGenerator(
             rescale=1./255,
             rotation_range=15,
-            width_shift_range=0.2,
-            height_shift_range=0.2,
-            shear_range=0.2,
             zoom_range=0.2,
-            horizontal_flip=True,
+            horizontal_flip=False,
             fill_mode='nearest'
         )
         testing_idg = ImageDataGenerator(rescale=1.0/255.)
@@ -105,13 +102,13 @@ class Dataset:
         # Directory flows
         training_generator = training_idg.flow_from_directory(
             self.train_path,
-            batch_size=25,
+            batch_size=32,
             class_mode='categorical',
             target_size=target_size
         )
         testing_generator = testing_idg.flow_from_directory(
             self.test_path,
-            batch_size=25,
+            batch_size=32,
             class_mode='categorical',
             target_size=target_size
         )

@@ -1,5 +1,6 @@
 # Python
 import os
+import shutil
 # Downloaded
 import cv2
 import tensorflow as tf
@@ -8,6 +9,16 @@ import matplotlib.pyplot as plt
 from signdex.data import Dataset
 from signdex.processing import Processor
 from signdex.common import Path
+
+
+class AccuracyCallback(tf.keras.callbacks.Callback):
+    def __init__(self, limit):
+        self.limit = limit
+    
+    def on_epoch_end(self, epoch, logs={}):
+        if(logs.get('acc') > self.limit):
+            print("\nAcurracy of {} achieved.".format(self.limit))
+            self.model.stop_training = True
 
 class Model:
     def __init__(self, name):
@@ -27,6 +38,10 @@ class Model:
 
             # Load model from json
             self.__model = tf.keras.models.model_from_json(json_model)
+            self.__model.load_weights(self.weights_path)
+
+            ds_name = '_'.join(self.name.split('_')[:-1])
+            self.dataset = Dataset(ds_name)
 
     def create_nn(self, dataset, target_size=(64,64)):
         input_size = target_size[0]*target_size[1]
@@ -52,7 +67,7 @@ class Model:
             tf.keras.layers.MaxPooling2D(2, 2),
             tf.keras.layers.Conv2D(32, (3, 3), activation='relu'),
             tf.keras.layers.MaxPooling2D(2, 2),
-            tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
+            tf.keras.layers.Conv2D(32, (3, 3), activation='relu'),
             tf.keras.layers.MaxPooling2D(2, 2),
             tf.keras.layers.Flatten(),
             tf.keras.layers.Dense(512, activation='relu'),
@@ -68,22 +83,28 @@ class Model:
         size = int(self.name.split('_')[-1])
         image = cv2.resize(image, (size,size))
 
-        results = self.__model.predict([[image]])
+        tag = self.__model.predict_classes([image.reshape(1,size,size,3)])[0]
+        prediction = self.dataset.tag_list[tag]
 
-        return results
+        return prediction
     
     def __train(self, model, generators):
         history = model.fit_generator(
             generators['training'],
-            epochs=15,
+            steps_per_epoch=500,
+            epochs=50,
             verbose=1,
-            validation_data=generators['testing']
+            validation_data=generators['testing'],
+            validation_steps=200,
+            callbacks=[AccuracyCallback(0.99)]
         )
 
         self.__save(model)
         self.__graph_results(history)
 
     def __save(self, model):
+        if self.__exists():
+            shutil.rmtree(self.path, ignore_errors=True)
         os.makedirs(self.path)
 
         # Save JSON model
@@ -92,33 +113,27 @@ class Model:
 
         # Save model weights
         model.save_weights(self.weights_path)
+
+        print('Model {} saved to disk.'.format(self.name))
     
     def __graph_results(self, history):
-        #-----------------------------------------------------------
-        # Retrieve a list of list results on training and test data
-        # sets for each training epoch
-        #-----------------------------------------------------------
-        acc=history.history['acc']
-        val_acc=history.history['val_acc']
-        loss=history.history['loss']
-        val_loss=history.history['val_loss']
+        plt.figure(figsize=[8,6])
+        plt.plot(history.history['loss'],'r',linewidth=3.0)
+        plt.plot(history.history['val_loss'],'b',linewidth=3.0)
+        plt.legend(['Training loss', 'Validation Loss'],fontsize=18)
+        plt.xlabel('Epochs ',fontsize=16)
+        plt.ylabel('Loss',fontsize=16)
+        plt.title('Loss Curves',fontsize=16)
+        plt.show()
 
-        epochs=range(len(acc)) # Get number of epochs
-
-        #------------------------------------------------
-        # Plot training and validation accuracy per epoch
-        #------------------------------------------------
-        plt.plot(epochs, acc, 'r', "Training Accuracy")
-        plt.plot(epochs, val_acc, 'b', "Validation Accuracy")
-        plt.title('Training and validation accuracy')
-        plt.figure()
-
-        #------------------------------------------------
-        # Plot training and validation loss per epoch
-        #------------------------------------------------
-        plt.plot(epochs, loss, 'r', "Training Loss")
-        plt.plot(epochs, val_loss, 'b', "Validation Loss")
-        plt.figure()
+        plt.figure(figsize=[8,6])
+        plt.plot(history.history['acc'],'r',linewidth=3.0)
+        plt.plot(history.history['val_acc'],'b',linewidth=3.0)
+        plt.legend(['Training Accuracy', 'Validation Accuracy'],fontsize=18)
+        plt.xlabel('Epochs ',fontsize=16)
+        plt.ylabel('Accuracy',fontsize=16)
+        plt.title('Accuracy Curves',fontsize=16)
+        plt.show()
     
     def __exists(self):
         model_list = Path.list_subdirectories(Path.MODELS)
