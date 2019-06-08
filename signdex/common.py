@@ -1,6 +1,9 @@
+# Python
 import os
-
+# Downloaded
 import cv2
+# SignDex
+
 
 class Camera:
     def __init__(self):
@@ -15,7 +18,7 @@ class Camera:
     def read(self):
         _, frame = self.source.read()
         
-        return frame
+        return cv2.flip(frame,1)
     
     def close(self):
         self.source.release()
@@ -23,6 +26,7 @@ class Camera:
 
 class Path:
     DATASETS = os.path.join(os.getcwd(), 'datasets')
+    MODELS = os.path.join(os.getcwd(), 'models')
 
     @staticmethod
     def list_subdirectories(dirpath, return_fullpath=False):
