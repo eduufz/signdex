@@ -41,13 +41,9 @@ class Dataset:
         if len(tags) == 0:
             raise ValueError('tag list cannot be empty')
 
-        # Check if dataset already exists
-        if self.exists():
-            # If specified, delete dataset if exists
-            if replace_if_exists:
-                self.delete()
-            else:
-                raise Exception('dataset already exists')
+        # If specified, delete dataset if exists
+        if replace_if_exists:
+            self.delete()
 
         # Total images per set
         total_training_images = int(n*ratio)
@@ -60,31 +56,33 @@ class Dataset:
 
         for tag in tags:
             tag = tag.strip()
+            tag_exist_count = self.total_tag_images(tag)
             tag_count = 0
             recording = False
+            end = False
 
             # Create directory
             train_tagpath = os.path.join(self.train_path, tag)
             test_tagpath = os.path.join(self.test_path, tag)
 
             # Wait for user to start recording
-            while True:
+            while not recording and not end:
                 Window.show_tag_panel(tag, (0, n), recording)
                 images = self.__get_processed_images(side)
                 cv2.imshow('video', images['display'])
 
                 key = cv2.waitKey(1)
-                if key & 0xFF == ord('c'): break
-            recording = True
+                if key & 0xFF == ord('c'): recording = True
+                elif key & 0xFF == 27: end = True
 
             # Start recording
-            while True:
+            while recording and not end:
                 images = self.__get_processed_images(side)
                 cv2.imshow('video', images['display'])
                 Window.show_tag_panel(tag, (tag_count, n), recording)
 
                 # Save images to training or testing
-                tagname = '{}{}.jpg'.format(tag,('0000'+str(tag_count+1))[-4:])
+                tagname = '{}{}.jpg'.format(tag,('0000'+str(tag_exist_count+tag_count+1))[-4:])
                 if tag_count < total_training_images:
                     savepath = os.path.join(train_tagpath,tagname)
                     cv2.imwrite(savepath, images['crop'])
@@ -95,7 +93,9 @@ class Dataset:
                     if tag_count != n: tag_count += 1
                 
                 key = cv2.waitKey(1)
-                if key != -1: break
+                if key != -1: recording = False
+                    
+            if end: break
 
     def process(self):
         if not self.exists():
@@ -202,6 +202,15 @@ class Dataset:
         if self.name in dataset_list: return True
         else: return False
     
+    def total_tag_images(self, tag):
+        total = 0
+
+        if tag in self.tag_list:
+            total += len(Path.list_files(os.path.join(self.train_path, tag)))
+            total += len(Path.list_files(os.path.join(self.test_path, tag)))
+
+        return total
+    
     @property
     def total_images(self):
         total = 0
@@ -214,7 +223,7 @@ class Dataset:
 
     @property
     def total_tags(self):
-        return len(Path.list_subdirectories(self.train_path))
+        return len(self.tag_list)
     
     @property
     def tag_list(self):
