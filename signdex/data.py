@@ -94,7 +94,7 @@ class Dataset:
                 
                 key = cv2.waitKey(1)
                 if key != -1: recording = False
-                    
+
             if end: break
 
     def process(self):
@@ -133,7 +133,13 @@ class Dataset:
 
         print('{} total images processed'.format(self.total_images))
 
-    def load(self, target_size, binarized=False):
+    def load(self, target_size, binarized=False, save=False):
+        save_to_dir,save_format = None,None
+        if save:
+            save_format = 'jpg'
+            save_to_dir = os.path.join(Path.DATASETS,'{}_augmented'.format(self.name))
+            os.makedirs(save_to_dir, exist_ok=True)
+
         color_mode = ('grayscale' if binarized else 'rgb')
         train_path = (self.train_path_binarized if binarized else self.train_path)
         test_path = (self.test_path_binarized if binarized else self.test_path)
@@ -153,6 +159,8 @@ class Dataset:
         # Directory flows
         training_generator = training_idg.flow_from_directory(
             train_path,
+            save_to_dir=save_to_dir,
+            save_format=save_format,
             batch_size=32,
             class_mode='categorical',
             target_size=target_size,
