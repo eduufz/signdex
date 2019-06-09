@@ -134,6 +134,9 @@ class Dataset:
         print('{} total images processed'.format(self.total_images))
 
     def load(self, target_size, binarized=False, save=False):
+        if binarized and not os.path.isdir(self.path_binarized):
+            self.process()
+
         save_to_dir,save_format = None,None
         if save:
             save_format = 'jpg'
@@ -183,7 +186,7 @@ class Dataset:
         shutil.rmtree(self.path, ignore_errors=True)
 
     def __get_processed_images(self, side):
-        frame = self.camera.read()
+        frame = self.camera.capture()
         image = self.processor.draw_square(frame, side)
         crop = self.processor.crop(frame, side)
 

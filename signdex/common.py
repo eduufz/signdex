@@ -15,7 +15,7 @@ class Camera:
         if(self.source is None or not self.source.isOpened()):
             raise Warning('no camera found')
 
-    def read(self):
+    def capture(self):
         _, frame = self.source.read()
         
         return cv2.flip(frame,1)
