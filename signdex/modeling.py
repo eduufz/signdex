@@ -7,7 +7,6 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 # SignDex
 from signdex.data import Dataset
-from signdex.processing import Processor
 from signdex.common import Path
 
 
@@ -50,7 +49,7 @@ class Model:
 
         input_shape = (target_size[0], target_size[1], (1 if binarized else 3))
 
-        model = tf.keras.models.Sequential([
+        self.__model = tf.keras.models.Sequential([
             tf.keras.layers.Conv2D(16, (3, 3), activation='relu', input_shape=input_shape),
             tf.keras.layers.MaxPooling2D(2, 2),
             tf.keras.layers.Conv2D(32, (3, 3), activation='relu'),
@@ -62,11 +61,10 @@ class Model:
             tf.keras.layers.Dense(dataset.total_tags, activation='softmax')
         ])
         
-        model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['acc'])
-        model.summary()
+        self.__model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['acc'])
+        self.__model.summary()
 
         self.__train(
-            model,
             dataset.load(target_size=target_size, binarized=binarized),
             callbacks
         )
@@ -81,8 +79,8 @@ class Model:
 
         return prediction
     
-    def __train(self, model, generators, callbacks=[]):
-        history = model.fit_generator(
+    def __train(self, generators, callbacks=[]):
+        history = self.__model.fit_generator(
             generators['training'],
             steps_per_epoch=2000,
             epochs=50,
@@ -92,20 +90,20 @@ class Model:
             callbacks=callbacks
         )
 
-        self.__save(model)
+        self.__save()
         self.__graph_results(history)
 
-    def __save(self, model):
+    def __save(self):
         if self.exists():
             shutil.rmtree(self.path, ignore_errors=True)
         os.makedirs(self.path)
 
         # Save JSON model
         with open(self.model_path, 'w') as json_file:
-            json_file.write(model.to_json())
+            json_file.write(self.__model.to_json())
 
         # Save model weights
-        model.save_weights(self.weights_path)
+        self.__model.save_weights(self.weights_path)
 
         print('Model {} saved to disk.'.format(self.name))
     
