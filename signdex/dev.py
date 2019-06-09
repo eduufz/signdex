@@ -52,7 +52,7 @@ class Window():
         
         text_size = cv2.getTextSize(tag, font, size, thickness)[0]
         
-        if tag == 'SPACE' or tag == 'DELETE':
+        if tag == 'SPACE' or tag == 'DELETE' or tag == 'NONE':
             text_size = (141,50)
             tag = tag.strip()
             size = 1.5

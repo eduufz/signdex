@@ -43,7 +43,11 @@ class Model:
             ds_name = '_'.join(self.name.split('_')[:-1])
             self.dataset = Dataset(ds_name)
 
-    def create(self, dataset, target_size=(64,64), binarized=False):
+    def create(self, dataset, target_size=(64,64), binarized=False, callback=-1):
+        callbacks = []
+        if callback != -1:
+            callbacks.append(AccuracyCallback(callback))
+
         input_shape = (target_size[0], target_size[1], (1 if binarized else 3))
 
         model = tf.keras.models.Sequential([
@@ -61,7 +65,11 @@ class Model:
         model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['acc'])
         model.summary()
 
-        self.__train(model, dataset.load(target_size=target_size, binarized=binarized))
+        self.__train(
+            model,
+            dataset.load(target_size=target_size, binarized=binarized),
+            callbacks
+        )
 
     def predict(self, image):
         size = int(self.name.split('_')[-1])
@@ -73,7 +81,7 @@ class Model:
 
         return prediction
     
-    def __train(self, model, generators):
+    def __train(self, model, generators, callbacks=[]):
         history = model.fit_generator(
             generators['training'],
             steps_per_epoch=2000,
@@ -81,7 +89,7 @@ class Model:
             verbose=1,
             validation_data=generators['testing'],
             validation_steps=800,
-            callbacks=[AccuracyCallback(0.99)]
+            callbacks=callbacks
         )
 
         self.__save(model)
