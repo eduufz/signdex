@@ -2,6 +2,7 @@
 import os
 # Downloaded
 import cv2
+import numpy as np
 # SignDex
 
 
@@ -64,5 +65,26 @@ class Processor:
             raise ValueError('only "right" and "left" side available')
 
         image = cv2.rectangle(image, (x,y), (x+w, y+h), scolor, thickness)
+
+        return image
+
+    def outline_hand(self, image, mask, side, scolor=(255,255,255)):
+        image = image.copy()
+        mask = mask.copy()
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(5,5))
+        gradient = cv2.morphologyEx(mask, cv2.MORPH_GRADIENT, kernel)
+
+        x,y = 0,0
+        w,h = self.params['dimensions']
+
+        if side in self.params['position']:
+            x,y = self.params['position'][side]
+
+            img_crop = image[y:y+h, x:x+w]
+            redMask = cv2.bitwise_and(img_crop, img_crop, mask=gradient)
+            dst = cv2.addWeighted(redMask,1,img_crop,1,0,img_crop)
+            image[y:y+h, x:x+w] = dst
+        else:
+            raise ValueError('only "right" and "left" side available')
 
         return image
