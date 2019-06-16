@@ -81,9 +81,8 @@ class Processor:
             x,y = self.params['position'][side]
 
             img_crop = image[y:y+h, x:x+w]
-            redMask = cv2.bitwise_and(img_crop, img_crop, mask=gradient)
-            dst = cv2.addWeighted(redMask,1,img_crop,1,0,img_crop)
-            image[y:y+h, x:x+w] = dst
+            gradient = cv2.cvtColor(gradient, cv2.COLOR_GRAY2BGR)
+            image[y:y+h, x:x+w] = cv2.add(img_crop, gradient)
         else:
             raise ValueError('only "right" and "left" side available')
 
