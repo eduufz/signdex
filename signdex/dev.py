@@ -6,8 +6,8 @@ import cv2
 
 
 class Window():
-    @classmethod
-    def show_tag_panel(cls, tag, count, started):
+    @staticmethod
+    def show_tag_panel(tag, count, started):
         # Font config
         img = np.zeros((300,500,3), np.uint8)
         font = cv2.FONT_HERSHEY_SIMPLEX
@@ -38,11 +38,37 @@ class Window():
 
 
         # Show image
-        cls.show('tag', img)
+        cv2.imshow('tag_panel', img)
     
     @staticmethod
-    def show(title, image):
-        cv2.imshow(title, image)
+    def show_tag_prediction(tag):
+        prediction_box  = np.zeros((200,200), np.uint8)
+        
+        # TEXT FORMAT
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        color = (255,255,255)
+        size = 3
+        thickness = 6
+        
+        text_size = cv2.getTextSize(tag, font, size, thickness)[0]
+        
+        if tag == 'SPACE' or tag == 'DELETE' or tag == 'NONE':
+            text_size = (141,50)
+            tag = tag.strip()
+            size = 1.5
+            thickness = 2
+        
+        x = int((prediction_box.shape[1] - text_size[0]) / 2)
+        y = int((prediction_box.shape[0] + text_size[1]) / 2)
+
+        if tag == 'SPACE': x -= 5
+        if tag == 'DELETE': x -= 10
+        
+        # IMAGE
+        cv2.putText(prediction_box, tag, (x,y), font, size, color, thickness, cv2.LINE_AA)
+        
+        # Show image
+        cv2.imshow('tag_prediction', prediction_box)
 
     @staticmethod
     def clean():

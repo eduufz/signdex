@@ -7,15 +7,15 @@ import cv2
 
 class Camera:
     def __init__(self):
-        pass
+        self.source = None
         
     def open(self, source=0):
         self.source = cv2.VideoCapture(source)
         
-        if(self.source is None or not self.source.isOpened()):
+        if(not self.isavailable()):
             raise Warning('no camera found')
 
-    def read(self):
+    def capture(self):
         _, frame = self.source.read()
         
         return cv2.flip(frame,1)
@@ -23,6 +23,9 @@ class Camera:
     def close(self):
         self.source.release()
         cv2.destroyAllWindows()
+    
+    def isavailable(self):
+        return (self.source is not None and self.source.isOpened())
 
 class Path:
     DATASETS = os.path.join(os.getcwd(), 'datasets')
